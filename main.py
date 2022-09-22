@@ -1,26 +1,23 @@
 import os
-
 from aiogram import types, executor, Dispatcher, Bot
-from aiogram.dispatcher import FSMContext
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, ContentType, Message
-from aiogram.utils.callback_data import CallbackData
-from aiogram.contrib.fsm_storage.memory import MemoryStorage
-from aiogram.dispatcher.filters.state import State, StatesGroup
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import sqlite3
 import logging
 import time
 
+
 if not os.path.exists("QrCode"):
     os.mkdir("QrCode")
-
 os.chdir("QrCode")
+
 
 with sqlite3.connect("Petrol.db") as QrPetrol:
     sql = QrPetrol.cursor()
     table = """CREATE TABLE IF NOT EXISTS `QRPetrol` (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    adress TEXT,
-    count int NOT NULL DEFAULT 4
+    qrname TEXT,
+    kolichestvo int NOT NULL DEFAULT 4,
+    kosiak int NOT NULL DEFAULT 0
     )"""
     sql.executescript(table)
 
@@ -45,30 +42,9 @@ async def begin(message: types.Message):
 def giveFreshQR():
     with sqlite3.connect("Petrol.db") as QrPetrol:
         sql = QrPetrol.cursor()
-        sql.execute("SELECT adress FROM QRPetrol WHERE count = ?", ("4", ))
+        sql.execute("SELECT qrname FROM QRPetrol WHERE kolichestvo = ?", ("4", ))
         name = sql.fetchone()
         return name[0]
-
-
-@dispatcher.callback_query_handler(lambda c: c.data == "GiveQR")
-async def giveQR(call: types.callback_query):
-    markup = InlineKeyboardMarkup()
-    button2 = InlineKeyboardButton("QR не работает", callback_data="GiveQR")
-    markup.add(button2)
-    name = giveFreshQR()
-    photo = open("QrCode"/{name}, "rb")
-    print(photo)
-    await bot.answer_callback_query(call.id)
-    await bot.send_message(call.message.chat.id, "Нажми, если QR не работает", reply_markup=markup)
-
-@dispatcher.callback_query_handler(lambda c: c.data == "downloadQR")
-async def giveQR(call: types.callback_query):
-    markup = InlineKeyboardMarkup()
-    button2 = InlineKeyboardButton("Отмена", callback_data="start")
-    markup.add(button2)
-
-    await bot.answer_callback_query(call.id)
-    await bot.send_message(call.message.chat.id, "sfeefef", reply_markup=markup)
 
 
 def addSQL(message):
@@ -76,15 +52,39 @@ def addSQL(message):
         with sqlite3.connect("Petrol.db") as QrPetrol:
             name = message.photo[0].file_unique_id + ".jpeg"
             sql = QrPetrol.cursor()
-            sql.execute("SELECT adress FROM QRPetrol WHERE adress = ?", (name,))
+            sql.execute("SELECT qrname FROM QRPetrol WHERE qrname = (?)", (name,))
             data = sql.fetchone()
             if data is None:
-                sql.execute(f"INSERT INTO QRPetrol (adress) VALUES (?)", (name,))
+                sql.execute(f"INSERT INTO QRPetrol (qrname) VALUES (?)", (name,))
                 return True
             else:
                 return False
     except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite", error)
+        print("Ошибка при работе с SQLite addSQL", error)
+
+
+def changeParametr(parametr, num, id):  # обновляет заданный параметр в sql по одному
+    try:
+        with sqlite3.connect("Petrol.db") as QrPetrol:
+            sql = QrPetrol.cursor()
+            # sql.execute(f"""UPDATE QRPetrol SET kolichestvo = {num} WHERE `qrname` = `{id}`""")
+            sql.execute('UPDATE QRPetrol SET ? = ? WHERE qrname = ?', (parametr, num, id))
+            QrPetrol.commit()
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite changeParametr", error)
+
+
+@dispatcher.callback_query_handler(lambda c: c.data == "GiveQR")
+async def giveQR(call: types.callback_query):
+    markup = InlineKeyboardMarkup()
+    button1 = InlineKeyboardButton("Заправился, спасибо)", callback_data="GiveQR")
+    button2 = InlineKeyboardButton("QR не работает", callback_data="GiveQR")
+    markup.add(button1, button2)
+    name = giveFreshQR()
+    photo = open(f"{name}", "rb")
+    changeParametr('kolichestvo', '0', name)
+    await bot.send_photo(call.message.chat.id, photo=photo, reply_markup=markup)
+    await bot.answer_callback_query(call.id)
 
 
 @dispatcher.message_handler(content_types=['photo'])
@@ -98,10 +98,6 @@ async def get_photo(message: types.Message):
             await message.answer("Этот QR уже загружен")
     else:
         await message.answer("Нет прав на добавление QR")
-
-
-
-
 
 
 if __name__ == '__main__':
