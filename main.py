@@ -42,8 +42,9 @@ async def begin(message: types.Message):
 def giveFreshQR():
     with sqlite3.connect("Petrol.db") as QrPetrol:
         sql = QrPetrol.cursor()
-        sql.execute("SELECT qrname FROM QRPetrol WHERE kolichestvo = ?", ("4", ))
+        sql.execute("SELECT qrname FROM QRPetrol WHERE kolichestvo = ?", ("4",))
         name = sql.fetchone()
+        print(name[0])
         return name[0]
 
 
@@ -63,12 +64,11 @@ def addSQL(message):
         print("Ошибка при работе с SQLite addSQL", error)
 
 
-def changeParametr(parametr, num, id):  # обновляет заданный параметр в sql по одному
+def changeCount(num, id):  # обновляет заданный параметр в sql по одному
     try:
         with sqlite3.connect("Petrol.db") as QrPetrol:
             sql = QrPetrol.cursor()
-            # sql.execute(f"""UPDATE QRPetrol SET kolichestvo = {num} WHERE `qrname` = `{id}`""")
-            sql.execute('UPDATE QRPetrol SET ? = ? WHERE qrname = ?', (parametr, num, id))
+            sql.execute('''UPDATE QRPetrol SET kolichestvo = ? WHERE qrname = ?''', (num, id))
             QrPetrol.commit()
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite changeParametr", error)
@@ -82,7 +82,7 @@ async def giveQR(call: types.callback_query):
     markup.add(button1, button2)
     name = giveFreshQR()
     photo = open(f"{name}", "rb")
-    changeParametr('kolichestvo', '0', name)
+    changeCount('0', name)
     await bot.send_photo(call.message.chat.id, photo=photo, reply_markup=markup)
     await bot.answer_callback_query(call.id)
 
