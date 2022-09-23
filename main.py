@@ -28,7 +28,9 @@ dispatcher = Dispatcher(bot=bot)
 
 id_lesha = 243626777
 id_gosha = 498332094
-id_dopusk = (id_gosha, id_lesha)
+id_vania = 79994399
+
+id_dopusk = (id_gosha, id_lesha, id_vania)
 
 
 @dispatcher.message_handler(commands=["start"])  # обработка команды /start
