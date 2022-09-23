@@ -2,7 +2,7 @@
 <project version="4">
   <component name="ProjectModuleManager">
     <modules>
-      <module fileurl="file://$PROJECT_DIR$/.idea/shtrihiqr.iml" filepath="$PROJECT_DIR$/.idea/shtrihiqr.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/QRCode.iml" filepath="$PROJECT_DIR$/.idea/QRCode.iml" />
     </modules>
   </component>
 </project>
