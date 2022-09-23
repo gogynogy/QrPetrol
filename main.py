@@ -26,17 +26,22 @@ TOKEN = "5602345357:AAE3DfCvLMjthTou9tbU4S9uJbGj0jVTwSg"
 bot = Bot(token=TOKEN)
 dispatcher = Dispatcher(bot=bot)
 
+id_lesha = 243626777
 id_gosha = 498332094
-
+id_dopusk = (id_gosha, id_lesha)
 
 
 @dispatcher.message_handler(commands=["start"])  # обработка команды /start
 async def begin(message: types.Message):
-    markup = InlineKeyboardMarkup(row_width=1)
-    button1 = InlineKeyboardButton("Not work", callback_data="NewSdelka")
-    button2 = InlineKeyboardButton("Выдать QR", callback_data="GiveQR")
-    markup.add(button1, button2)
-    await message.answer(f"Пс, парень! Не хочешь не много заправиться?)", reply_markup=markup)
+    if message.chat.id in id_dopusk:
+        markup = InlineKeyboardMarkup(row_width=1)
+        button1 = InlineKeyboardButton("Обнулить все QR", callback_data="newWeekStart")
+        button2 = InlineKeyboardButton("Выдать QR", callback_data="GiveQR")
+        markup.add(button1, button2)
+        await message.answer(f"Пс, парень! Не хочешь не много заправиться?)", reply_markup=markup)
+    else:
+        await message.answer(f"Пойдем твое говно толкнем.\nА потом мопед заправим.")
+        await bot.send_message(id_gosha, f"Чувак с ником @{message.chat.username} хочет топлива\nВот его ID {message.chat.id}")
 
 
 def giveFreshQR():
@@ -74,12 +79,23 @@ def changeCount(num, id):  # обновляет заданный парамет�
         print("Ошибка при работе с SQLite changeParametr", error)
 
 
+def nullCount():  # обновляет заданный параметр в sql по одному
+    try:
+        with sqlite3.connect("Petrol.db") as QrPetrol:
+            sql = QrPetrol.cursor()
+            sql.execute('''UPDATE QRPetrol SET kolichestvo = 4 WHERE qrname = *''')
+            QrPetrol.commit()
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite changeParametr", error)
+
+
 @dispatcher.callback_query_handler(lambda c: c.data == "GiveQR")
 async def giveQR(call: types.callback_query):
     markup = InlineKeyboardMarkup()
-    button1 = InlineKeyboardButton("Заправился, спасибо)", callback_data="GiveQR")
-    button2 = InlineKeyboardButton("QR не работает", callback_data="GiveQR")
+    button1 = InlineKeyboardButton("Заправился, спасибо)", callback_data="sushi")
+    button2 = InlineKeyboardButton("QR не работает", callback_data="Kosiak")
     markup.add(button1, button2)
+    global name
     name = giveFreshQR()
     photo = open(f"{name}", "rb")
     changeCount('0', name)
@@ -87,9 +103,14 @@ async def giveQR(call: types.callback_query):
     await bot.answer_callback_query(call.id)
 
 
+@dispatcher.callback_query_handler(text='sushi')
+async def process_callback_button1(callback_query: types.CallbackQuery):
+    await callback_query.message.delete()
+
+
 @dispatcher.message_handler(content_types=['photo'])
 async def get_photo(message: types.Message):
-    if message.chat.id == id_gosha:
+    if message.chat.id in id_dopusk:
         if addSQL(message):
             name = message.photo[0].file_unique_id + ".jpeg"
             await message.photo[-1].download(name)
