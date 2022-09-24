@@ -19,6 +19,19 @@ with sqlite3.connect("Petrol.db") as QrPetrol:
     )"""
     sql.executescript(table)
 
+
+with sqlite3.connect("Petrol.db") as QrPetrol:
+    sql = QrPetrol.cursor()
+    table = """CREATE TABLE IF NOT EXISTS `accounts` (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    TelegramNikName TEXT,
+    IDTelegram TEXT,
+    TelegramName TEXT,
+    OstalosQR int NOT NULL DEFAULT 2,
+    )"""
+    sql.executescript(table)
+
+
 TOKEN = "5602345357:AAE3DfCvLMjthTou9tbU4S9uJbGj0jVTwSg"
 
 bot = Bot(token=TOKEN)
@@ -60,7 +73,7 @@ def changeCount(num, id):  # изменяет колличество топли�
             sql.execute('''UPDATE QRPetrol SET kolichestvo = ? WHERE qrname = ?''', (num, id))
             QrPetrol.commit()
     except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite changeParametr", error)
+        print("Ошибка при работе с SQLite changeCount", error)
 
 
 def kosyakus(id):  # изменяет колличество косяков на карте
@@ -70,7 +83,7 @@ def kosyakus(id):  # изменяет колличество косяков на
             sql.execute('''UPDATE QRPetrol SET kosiak = (kosiak + 1) WHERE qrname = ?''', (id, ))
             QrPetrol.commit()
     except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite changeParametr", error)
+        print("Ошибка при работе с SQLite kosyakus", error)
 
 
 def nullCount():  # обнуляет топливо на неделю
@@ -80,7 +93,7 @@ def nullCount():  # обнуляет топливо на неделю
             sql.execute('''UPDATE QRPetrol SET kolichestvo = 4''')
             QrPetrol.commit()
     except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite changeParametr", error)
+        print("Ошибка при работе с SQLite nullCount", error)
 
 
 def howMutchIsTheFish():  #считает остаток по топливу
@@ -91,7 +104,7 @@ def howMutchIsTheFish():  #считает остаток по топливу
             result = sql.fetchone()[0]
             return result
     except sqlite3.Error as error:
-                print("Ошибка при работе с SQLite", error)
+                print("Ошибка при работе с SQLite howMutchIsTheFish", error)
 
 @dispatcher.message_handler(commands=["start"])  # обработка команды /start
 async def begin(message: types.Message):
@@ -102,9 +115,9 @@ async def begin(message: types.Message):
         markup.add(button1, button2)
         count = howMutchIsTheFish()
         await message.answer(f"Пс, парень! Не хочешь не много заправиться?\n "
-                             f"до конца недели осталось {count}l", reply_markup=markup)
+                             f"до конца недели осталось {count}L", reply_markup=markup)
     else:
-        await message.answer(f"Пойдем твое говно толкнем.\nА потом мопед заправим.")
+        await message.answer(f"Пойдем тебе говно толкнем.\nА потом мопед заправим.")
         await bot.send_message(id_gosha, f"Кто-то с ником @{message.chat.username} хочет топлива\n"
                                          f"Вот его ID {message.chat.id}")
 
@@ -126,7 +139,7 @@ async def kosiak(call: types.callback_query):
     await bot.send_message(call.message.chat.id, "QR помечен не рабочим", reply_markup=markup)
 
 
-@dispatcher.callback_query_handler(lambda c: c.data == "GiveQR")
+@dispatcher.callback_query_handler(lambda c: c.data == "GiveQR")  #даёт qr
 async def giveQR(call: types.callback_query):
     markup = InlineKeyboardMarkup()
     button1 = InlineKeyboardButton("Заправился, спасибо)", callback_data="sushi")
@@ -143,12 +156,12 @@ async def giveQR(call: types.callback_query):
         await bot.send_message(call.message.chat.id, "Топливо на неделю кончилось")
 
 
-@dispatcher.callback_query_handler(text='sushi')
+@dispatcher.callback_query_handler(text='sushi')  #удаляет сообщение
 async def clearMessage(callback_query: types.CallbackQuery):
     await callback_query.message.delete()
 
 
-@dispatcher.message_handler(content_types=['photo'])
+@dispatcher.message_handler(content_types=['photo'])  #грузит фото
 async def get_photo(message: types.Message):
     if message.chat.id in id_dopusk:
         if addSQL(message):
