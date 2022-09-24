@@ -2,7 +2,7 @@ import os
 from aiogram import types, executor, Dispatcher, Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import sqlite3
-
+from aiogram.utils.callback_data import CallbackData
 
 if not os.path.exists("QrCode"):
     os.mkdir("QrCode")
@@ -26,16 +26,16 @@ with sqlite3.connect("Petrol.db") as QrPetrol:
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     TelegramNikName TEXT,
     IDTelegram TEXT,
-    TelegramName TEXT,
-    OstalosQR int NOT NULL DEFAULT 2,
+    OstalosQR int NOT NULL DEFAULT 8
     )"""
     sql.executescript(table)
 
 
 TOKEN = "5602345357:AAE3DfCvLMjthTou9tbU4S9uJbGj0jVTwSg"
-
 bot = Bot(token=TOKEN)
 dispatcher = Dispatcher(bot=bot)
+cb = CallbackData('button1', 'username', 'id')
+
 
 id_lesha = 243626777
 id_gosha = 498332094
@@ -104,22 +104,76 @@ def howMutchIsTheFish():  #считает остаток по топливу
             result = sql.fetchone()[0]
             return result
     except sqlite3.Error as error:
-                print("Ошибка при работе с SQLite howMutchIsTheFish", error)
+            print("Ошибка при работе с SQLite howMutchIsTheFish", error)
+
+
+def CheckAccount(message):
+    try:
+        with sqlite3.connect("Petrol.db") as QrPetrol:
+            sql = QrPetrol.cursor()
+            sql.execute("SELECT IDTelegram FROM accounts WHERE IDTelegram = (?)", (message.chat.id,))
+            data = sql.fetchone()
+            if data is None:
+                return False
+            else:
+                return True
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite addSQL", error)
+
+
+def addAccountSQL(username, id):  #проверяет наличие фото в базе и добавляет
+    try:
+        with sqlite3.connect("Petrol.db") as QrPetrol:
+            sql = QrPetrol.cursor()
+            sql.execute(f"INSERT INTO accounts (TelegramNikName, IDTelegram) VALUES (?, ?)", (username, id))
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite addSQL", error)
+
 
 @dispatcher.message_handler(commands=["start"])  # обработка команды /start
 async def begin(message: types.Message):
+    markup = InlineKeyboardMarkup(row_width=1)
+    button1 = InlineKeyboardButton("Обнулить все QR", callback_data="newWeekStart")
+    button2 = InlineKeyboardButton("Выдать QR", callback_data="GiveQR")
     if message.chat.id in id_dopusk:
-        markup = InlineKeyboardMarkup(row_width=1)
-        button1 = InlineKeyboardButton("Обнулить все QR", callback_data="newWeekStart")
-        button2 = InlineKeyboardButton("Выдать QR", callback_data="GiveQR")
         markup.add(button1, button2)
         count = howMutchIsTheFish()
         await message.answer(f"Пс, парень! Не хочешь не много заправиться?\n "
                              f"до конца недели осталось {count}L", reply_markup=markup)
+    elif CheckAccount(message):
+        markup.add(button2)
+        count = howMutchIsTheFish()
+        await message.answer(f"Пс, парень! Не хочешь не много заправиться?\n "
+                             f"до конца недели осталось {count}L", reply_markup=markup)
     else:
-        await message.answer(f"Пойдем тебе говно толкнем.\nА потом мопед заправим.")
+        button = knopkaADDaccount(message.chat.id, message.chat.username)
+        await message.answer(f"доброе утро\nА потом мопед заправим.")
         await bot.send_message(id_gosha, f"Кто-то с ником @{message.chat.username} хочет топлива\n"
-                                         f"Вот его ID {message.chat.id}")
+                                         f"Вот его ID {message.chat.id}", reply_markup=button)
+
+
+def knopkaADDaccount(id, username):  #создает кнопку с id записи
+    return InlineKeyboardMarkup(
+        inline_keyboard=[
+            [InlineKeyboardButton(f'Добавить @{username} в клуб?', callback_data=cb.new(id=id, username=username))]
+        ]
+    )
+
+
+@dispatcher.callback_query_handler(cb.filter())  #возвращает номер открытой сделки и открывает строчку в таблице
+async def button_hendler(query: types.CallbackQuery, callback_data: dict):
+    username = callback_data.get('username')
+    id = callback_data.get("id")
+    addAccountSQL(username, id)
+    markup = InlineKeyboardMarkup()
+    button2 = InlineKeyboardButton("Выдать QR", callback_data="GiveQR")
+    markup.add(button2)
+    await bot.send_message(id, "Поздравляю, тебе доступны QR кодя для заправки, недельный лимит 8 литров",
+                           reply_markup=markup)
+    await bot.send_message(id_gosha, "Добавлено")
+
+
+
 
 @dispatcher.callback_query_handler(lambda c: c.data == "newWeekStart")
 async def giveQR(call: types.callback_query):
