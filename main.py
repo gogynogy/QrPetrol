@@ -26,7 +26,7 @@ with sqlite3.connect("Petrol.db") as QrPetrol:
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     TelegramNikName TEXT,
     IDTelegram TEXT,
-    OstalosQR int NOT NULL DEFAULT 8
+    OstalosL int NOT NULL DEFAULT 8
     )"""
     sql.executescript(table)
 
@@ -34,7 +34,7 @@ with sqlite3.connect("Petrol.db") as QrPetrol:
 TOKEN = "5602345357:AAE3DfCvLMjthTou9tbU4S9uJbGj0jVTwSg"
 bot = Bot(token=TOKEN)
 dispatcher = Dispatcher(bot=bot)
-cb = CallbackData('button1', 'username', 'id')
+cb = CallbackData('action', 'username', 'id')
 
 
 id_lesha = 243626777
@@ -76,6 +76,16 @@ def changeCount(num, id):  # изменяет колличество топли�
         print("Ошибка при работе с SQLite changeCount", error)
 
 
+def changeCountClient(id):  # изменяет колличество топлива на остатке клиента
+    try:
+        with sqlite3.connect("Petrol.db") as QrPetrol:
+            sql = QrPetrol.cursor()
+            sql.execute('''UPDATE accounts SET OstalosL = (OstalosL -4) WHERE IDTelegram = ?''', (id, ))
+            QrPetrol.commit()
+    except sqlite3.Error as error:
+        print("Ошибка при работе с SQLite changeCountClient", error)
+
+
 def kosyakus(id):  # изменяет колличество косяков на карте
     try:
         with sqlite3.connect("Petrol.db") as QrPetrol:
@@ -106,8 +116,18 @@ def howMutchIsTheFish():  #считает остаток по топливу
     except sqlite3.Error as error:
             print("Ошибка при работе с SQLite howMutchIsTheFish", error)
 
+def howMutchIsTheFishClient(id):  #считает остаток по топливу
+    try:
+        with sqlite3.connect("Petrol.db") as QrPetrol:
+            sql = QrPetrol.cursor()
+            sql.execute(f"""SELECT SUM(OstalosL) FROM `accounts` WHERE IDTelegram = ?""", (id,))
+            result = sql.fetchone()[0]
+            return result
+    except sqlite3.Error as error:
+            print("Ошибка при работе с SQLite howMutchIsTheFishClient", error)
 
-def CheckAccount(message):
+
+def CheckAccount(message):  # проверяет наличие id в базе
     try:
         with sqlite3.connect("Petrol.db") as QrPetrol:
             sql = QrPetrol.cursor()
@@ -132,18 +152,18 @@ def addAccountSQL(username, id):  #проверяет наличие фото в
 
 @dispatcher.message_handler(commands=["start"])  # обработка команды /start
 async def begin(message: types.Message):
-    markup = InlineKeyboardMarkup(row_width=1)
+    markup = InlineKeyboardMarkup()
     button1 = InlineKeyboardButton("Обнулить все QR", callback_data="newWeekStart")
     button2 = InlineKeyboardButton("Выдать QR", callback_data="GiveQR")
+    button3 = InlineKeyboardButton("Выдать QR", callback_data="GiveQRclient")
     if message.chat.id in id_dopusk:
         markup.add(button1, button2)
-        count = howMutchIsTheFish()
-        await message.answer(f"Пс, парень! Не хочешь не много заправиться?\n "
-                             f"до конца недели осталось {count}L", reply_markup=markup)
+        await message.answer(f"Пс! Хочешь не много горючки?\n"
+                             f"до конца недели осталось {howMutchIsTheFish()}L", reply_markup=markup)
     elif CheckAccount(message):
-        markup.add(button2)
-        count = howMutchIsTheFish()
-        await message.answer(f"Пс, парень! Не хочешь не много заправиться?\n "
+        markup.add(button3)
+        count = howMutchIsTheFishClient(message.chat.id)
+        await message.answer(f"Пс! Хочешь не много горючки?\n"
                              f"до конца недели осталось {count}L", reply_markup=markup)
     else:
         button = knopkaADDaccount(message.chat.id, message.chat.username)
@@ -160,7 +180,7 @@ def knopkaADDaccount(id, username):  #создает кнопку с id запи
     )
 
 
-@dispatcher.callback_query_handler(cb.filter())  #возвращает номер открытой сделки и открывает строчку в таблице
+@dispatcher.callback_query_handler(cb.filter())  # добавляет аккаунт в таблицу
 async def button_hendler(query: types.CallbackQuery, callback_data: dict):
     username = callback_data.get('username')
     id = callback_data.get("id")
@@ -171,8 +191,6 @@ async def button_hendler(query: types.CallbackQuery, callback_data: dict):
     await bot.send_message(id, "Поздравляю, тебе доступны QR кодя для заправки, недельный лимит 8 литров",
                            reply_markup=markup)
     await bot.send_message(id_gosha, "Добавлено")
-
-
 
 
 @dispatcher.callback_query_handler(lambda c: c.data == "newWeekStart")
@@ -204,6 +222,23 @@ async def giveQR(call: types.callback_query):
         name = giveFreshQR()
         photo = open(f"{name}", "rb")
         changeCount('0', name)
+        await bot.send_photo(call.message.chat.id, photo=photo, reply_markup=markup)
+        await bot.answer_callback_query(call.id)
+    except:
+        await bot.send_message(call.message.chat.id, "Топливо на неделю кончилось")
+
+
+@dispatcher.callback_query_handler(lambda c: c.data == "GiveQRclient")  #даёт qr
+async def giveQRclient(call: types.callback_query):
+    markup = InlineKeyboardMarkup()
+    button1 = InlineKeyboardButton("Заправился, спасибо)", callback_data="sushi")
+    button2 = InlineKeyboardButton("QR не работает", callback_data="Kosiak")
+    markup.add(button1, button2)
+    try:
+        global name
+        name = giveFreshQR()
+        photo = open(f"{name}", "rb")
+        changeCountClient(call.message.chat.id)
         await bot.send_photo(call.message.chat.id, photo=photo, reply_markup=markup)
         await bot.answer_callback_query(call.id)
     except:
