@@ -3,6 +3,7 @@ from aiogram import types, executor, Dispatcher, Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import sqlite3
 from aiogram.utils.callback_data import CallbackData
+from config import TOKEN
 
 if not os.path.exists("QrCode"):
     os.mkdir("QrCode")
@@ -31,7 +32,6 @@ with sqlite3.connect("Petrol.db") as QrPetrol:
     sql.executescript(table)
 
 
-TOKEN = "5602345357:AAE3DfCvLMjthTou9tbU4S9uJbGj0jVTwSg"
 bot = Bot(token=TOKEN)
 dispatcher = Dispatcher(bot=bot)
 cb = CallbackData('action', 'username', 'id')
@@ -50,7 +50,7 @@ def giveFreshQR():
         return name[0]
 
 
-def addSQL(message):  #проверяет наличие фото в базе и добавляет
+def addSQL(message):  # checks if the photo exists in the database and adds
     try:
         with sqlite3.connect("Petrol.db") as QrPetrol:
             name = message.photo[0].file_unique_id + ".jpeg"
@@ -66,7 +66,7 @@ def addSQL(message):  #проверяет наличие фото в базе и
         print("Ошибка при работе с SQLite addSQL", error)
 
 
-def changeCount(num, id):  # изменяет колличество топлива на остатке
+def changeCount(num, id):  # changes the amount of fuel in the remainder
     try:
         with sqlite3.connect("Petrol.db") as QrPetrol:
             sql = QrPetrol.cursor()
@@ -76,7 +76,7 @@ def changeCount(num, id):  # изменяет колличество топли�
         print("Ошибка при работе с SQLite changeCount", error)
 
 
-def changeCountClient(id):  # изменяет колличество топлива на остатке клиента
+def changeCountClient(id):  # changes the amount of fuel on the client's balance
     try:
         with sqlite3.connect("Petrol.db") as QrPetrol:
             sql = QrPetrol.cursor()
@@ -86,7 +86,7 @@ def changeCountClient(id):  # изменяет колличество топли
         print("Ошибка при работе с SQLite changeCountClient", error)
 
 
-def kosyakus(id):  # изменяет колличество косяков на карте
+def kosyakus(id):  # changes the number of joints on the map
     try:
         with sqlite3.connect("Petrol.db") as QrPetrol:
             sql = QrPetrol.cursor()
@@ -96,7 +96,7 @@ def kosyakus(id):  # изменяет колличество косяков на
         print("Ошибка при работе с SQLite kosyakus", error)
 
 
-def nullCount():  # обнуляет топливо на неделю
+def nullCount():  # zeroes in on fuel for the week
     try:
         with sqlite3.connect("Petrol.db") as QrPetrol:
             sql = QrPetrol.cursor()
@@ -106,7 +106,7 @@ def nullCount():  # обнуляет топливо на неделю
         print("Ошибка при работе с SQLite nullCount", error)
 
 
-def howMutchIsTheFish():  #считает остаток по топливу
+def howMutchIsTheFish():  # counts the fuel balance
     try:
         with sqlite3.connect("Petrol.db") as QrPetrol:
             sql = QrPetrol.cursor()
@@ -116,7 +116,8 @@ def howMutchIsTheFish():  #считает остаток по топливу
     except sqlite3.Error as error:
             print("Ошибка при работе с SQLite howMutchIsTheFish", error)
 
-def howMutchIsTheFishClient(id):  #считает остаток по топливу
+
+def howMutchIsTheFishClient(id):  # counts the fuel balance
     try:
         with sqlite3.connect("Petrol.db") as QrPetrol:
             sql = QrPetrol.cursor()
@@ -127,7 +128,7 @@ def howMutchIsTheFishClient(id):  #считает остаток по топли
             print("Ошибка при работе с SQLite howMutchIsTheFishClient", error)
 
 
-def CheckAccount(message):  # проверяет наличие id в базе
+def CheckAccount(message):  # checks if the id exists in the database
     try:
         with sqlite3.connect("Petrol.db") as QrPetrol:
             sql = QrPetrol.cursor()
@@ -141,7 +142,7 @@ def CheckAccount(message):  # проверяет наличие id в базе
         print("Ошибка при работе с SQLite addSQL", error)
 
 
-def addAccountSQL(username, id):  #проверяет наличие фото в базе и добавляет
+def addAccountSQL(username, id):  # checks if the photo exists in the database and adds
     try:
         with sqlite3.connect("Petrol.db") as QrPetrol:
             sql = QrPetrol.cursor()
@@ -150,7 +151,7 @@ def addAccountSQL(username, id):  #проверяет наличие фото в
         print("Ошибка при работе с SQLite addSQL", error)
 
 
-@dispatcher.message_handler(commands=["start"])  # обработка команды /start
+@dispatcher.message_handler(commands=["start"])  # /start command processing
 async def begin(message: types.Message):
     markup = InlineKeyboardMarkup()
     button1 = InlineKeyboardButton("Обнулить все QR", callback_data="newWeekStart")
@@ -172,7 +173,7 @@ async def begin(message: types.Message):
                                          f"Вот его ID {message.chat.id}", reply_markup=button)
 
 
-def knopkaADDaccount(id, username):  #создает кнопку с id записи
+def knopkaADDaccount(id, username):  # Creates a button with the record id
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [InlineKeyboardButton(f'Добавить @{username} в клуб?', callback_data=cb.new(id=id, username=username))]
@@ -180,7 +181,7 @@ def knopkaADDaccount(id, username):  #создает кнопку с id запи
     )
 
 
-@dispatcher.callback_query_handler(cb.filter())  # добавляет аккаунт в таблицу
+@dispatcher.callback_query_handler(cb.filter())  # adds the account to the table
 async def button_hendler(query: types.CallbackQuery, callback_data: dict):
     username = callback_data.get('username')
     id = callback_data.get("id")
@@ -245,12 +246,12 @@ async def giveQRclient(call: types.callback_query):
         await bot.send_message(call.message.chat.id, "Топливо на неделю кончилось")
 
 
-@dispatcher.callback_query_handler(text='sushi')  #удаляет сообщение
+@dispatcher.callback_query_handler(text='sushi')  # deletes the message
 async def clearMessage(callback_query: types.CallbackQuery):
     await callback_query.message.delete()
 
 
-@dispatcher.message_handler(content_types=['photo'])  #грузит фото
+@dispatcher.message_handler(content_types=['photo'])  # uploads photos
 async def get_photo(message: types.Message):
     if message.chat.id in id_dopusk:
         if addSQL(message):
