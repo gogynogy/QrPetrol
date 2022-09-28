@@ -121,7 +121,7 @@ class SQL:
         except sqlite3.Error as error:
             print("Ошибка при работе с SQLite addSQL", error)
 
-    def nullCount(self):  # zeroes in on fuel for the week
+    def nullCountPetrol(self):  # zeroes in on fuel for the week
         try:
             with sqlite3.connect("Petrol.db") as QrPetrol:
                 sql = QrPetrol.cursor()

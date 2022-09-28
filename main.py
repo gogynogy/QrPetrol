@@ -3,13 +3,14 @@ from aiogram import types, executor, Dispatcher, Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.callback_data import CallbackData
 from config import TOKEN
-from sql2 import SQL
+
 
 if not os.path.exists("QrCode"):
     os.mkdir("QrCode")
 os.chdir("QrCode")
 
-SQL = SQL("QrPetrol")
+from sql2 import SQL
+SQL = SQL("Petrol.db")
 SQL.createFirstTable()
 SQL.createSecondTable()
 
