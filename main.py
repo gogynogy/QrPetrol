@@ -1,37 +1,16 @@
 import os
 from aiogram import types, executor, Dispatcher, Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
-import sqlite3
 from aiogram.utils.callback_data import CallbackData
 from config import TOKEN
-from sql import SQL
+from sql import SQL as SQL3
 
 if not os.path.exists("QrCode"):
     os.mkdir("QrCode")
 os.chdir("QrCode")
 
 
-with sqlite3.connect("Petrol.db") as QrPetrol:
-    sql = QrPetrol.cursor()
-    table = """CREATE TABLE IF NOT EXISTS `QRPetrol` (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    qrname TEXT,
-    kolichestvo int NOT NULL DEFAULT 4,
-    kosiak int NOT NULL DEFAULT 0
-    )"""
-    sql.executescript(table)
-
-
-with sqlite3.connect("Petrol.db") as QrPetrol:
-    sql = QrPetrol.cursor()
-    table = """CREATE TABLE IF NOT EXISTS `accounts` (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    TelegramNikName TEXT,
-    IDTelegram TEXT,
-    OstalosL int NOT NULL DEFAULT 8
-    )"""
-    sql.executescript(table)
-
+SQL = SQL3()
 
 bot = Bot(token=TOKEN)
 dispatcher = Dispatcher(bot=bot)

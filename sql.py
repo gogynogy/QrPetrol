@@ -1,7 +1,26 @@
 import sqlite3
 
 class SQL:
+    def __init__(self):
+        with sqlite3.connect("Petrol.db") as QrPetrol:
+            sql = QrPetrol.cursor()
+            table = """CREATE TABLE IF NOT EXISTS `QRPetrol` (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            qrname TEXT,
+            kolichestvo int NOT NULL DEFAULT 4,
+            kosiak int NOT NULL DEFAULT 0
+            )"""
+            sql.executescript(table)
 
+        with sqlite3.connect("Petrol.db") as QrPetrol:
+            sql = QrPetrol.cursor()
+            table = """CREATE TABLE IF NOT EXISTS `accounts` (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            TelegramNikName TEXT,
+            IDTelegram TEXT,
+            OstalosL int NOT NULL DEFAULT 8
+            )"""
+            sql.executescript(table)
     def giveFreshQR(self):
         with sqlite3.connect("Petrol.db") as QrPetrol:
             sql = QrPetrol.cursor()
