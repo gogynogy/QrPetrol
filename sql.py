@@ -1,6 +1,7 @@
 import sqlite3
 
 class SQL:
+
     def __init__(self):
         with sqlite3.connect("Petrol.db") as QrPetrol:
             sql = QrPetrol.cursor()

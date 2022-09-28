@@ -3,14 +3,15 @@ from aiogram import types, executor, Dispatcher, Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.utils.callback_data import CallbackData
 from config import TOKEN
-from sql import SQL as SQL3
+from sql2 import SQL
 
 if not os.path.exists("QrCode"):
     os.mkdir("QrCode")
 os.chdir("QrCode")
 
-
-SQL = SQL3()
+SQL = SQL("QrPetrol")
+SQL.createFirstTable()
+SQL.createSecondTable()
 
 bot = Bot(token=TOKEN)
 dispatcher = Dispatcher(bot=bot)
@@ -70,7 +71,7 @@ async def giveQR(call: types.callback_query):
     markup = InlineKeyboardMarkup()
     button2 = InlineKeyboardButton("Выдать QR", callback_data="GiveQR")
     markup.add(button2)
-    SQL.nullCount()
+    SQL.nullCountPetrol()
     await bot.send_message(call.message.chat.id, "Все qr обнулились", reply_markup=markup)
 
 
