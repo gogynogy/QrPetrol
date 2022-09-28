@@ -1,3 +1,1 @@
-os
-aiogram
-sqlite3
+aiogram==2.22.1

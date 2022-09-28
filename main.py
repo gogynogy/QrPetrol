@@ -4,6 +4,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import sqlite3
 from aiogram.utils.callback_data import CallbackData
 from config import TOKEN
+from sql import SQL
 
 if not os.path.exists("QrCode"):
     os.mkdir("QrCode")
@@ -42,115 +43,6 @@ id_gosha = 498332094
 id_dopusk = (id_gosha, id_lesha)
 
 
-def giveFreshQR():
-    with sqlite3.connect("Petrol.db") as QrPetrol:
-        sql = QrPetrol.cursor()
-        sql.execute("SELECT qrname FROM QRPetrol WHERE kolichestvo = ?", ("4",))
-        name = sql.fetchone()
-        return name[0]
-
-
-def addSQL(message):  # checks if the photo exists in the database and adds
-    try:
-        with sqlite3.connect("Petrol.db") as QrPetrol:
-            name = message.photo[0].file_unique_id + ".jpeg"
-            sql = QrPetrol.cursor()
-            sql.execute("SELECT qrname FROM QRPetrol WHERE qrname = (?)", (name,))
-            data = sql.fetchone()
-            if data is None:
-                sql.execute(f"INSERT INTO QRPetrol (qrname) VALUES (?)", (name,))
-                return True
-            else:
-                return False
-    except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite addSQL", error)
-
-
-def changeCount(num, id):  # changes the amount of fuel in the remainder
-    try:
-        with sqlite3.connect("Petrol.db") as QrPetrol:
-            sql = QrPetrol.cursor()
-            sql.execute('''UPDATE QRPetrol SET kolichestvo = ? WHERE qrname = ?''', (num, id))
-            QrPetrol.commit()
-    except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite changeCount", error)
-
-
-def changeCountClient(id):  # changes the amount of fuel on the client's balance
-    try:
-        with sqlite3.connect("Petrol.db") as QrPetrol:
-            sql = QrPetrol.cursor()
-            sql.execute('''UPDATE accounts SET OstalosL = (OstalosL -4) WHERE IDTelegram = ?''', (id, ))
-            QrPetrol.commit()
-    except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite changeCountClient", error)
-
-
-def kosyakus(id):  # changes the number of joints on the map
-    try:
-        with sqlite3.connect("Petrol.db") as QrPetrol:
-            sql = QrPetrol.cursor()
-            sql.execute('''UPDATE QRPetrol SET kosiak = (kosiak + 1) WHERE qrname = ?''', (id, ))
-            QrPetrol.commit()
-    except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite kosyakus", error)
-
-
-def nullCount():  # zeroes in on fuel for the week
-    try:
-        with sqlite3.connect("Petrol.db") as QrPetrol:
-            sql = QrPetrol.cursor()
-            sql.execute('''UPDATE QRPetrol SET kolichestvo = 4''')
-            QrPetrol.commit()
-    except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite nullCount", error)
-
-
-def howMutchIsTheFish():  # counts the fuel balance
-    try:
-        with sqlite3.connect("Petrol.db") as QrPetrol:
-            sql = QrPetrol.cursor()
-            sql.execute(f"""SELECT SUM(kolichestvo) FROM `QRPetrol`""")
-            result = sql.fetchone()[0]
-            return result
-    except sqlite3.Error as error:
-            print("Ошибка при работе с SQLite howMutchIsTheFish", error)
-
-
-def howMutchIsTheFishClient(id):  # counts the fuel balance
-    try:
-        with sqlite3.connect("Petrol.db") as QrPetrol:
-            sql = QrPetrol.cursor()
-            sql.execute(f"""SELECT SUM(OstalosL) FROM `accounts` WHERE IDTelegram = ?""", (id,))
-            result = sql.fetchone()[0]
-            return result
-    except sqlite3.Error as error:
-            print("Ошибка при работе с SQLite howMutchIsTheFishClient", error)
-
-
-def CheckAccount(message):  # checks if the id exists in the database
-    try:
-        with sqlite3.connect("Petrol.db") as QrPetrol:
-            sql = QrPetrol.cursor()
-            sql.execute("SELECT IDTelegram FROM accounts WHERE IDTelegram = (?)", (message.chat.id,))
-            data = sql.fetchone()
-            if data is None:
-                return False
-            else:
-                return True
-    except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite addSQL", error)
-
-
-def addAccountSQL(username, id):  # checks if the photo exists in the database and adds
-    try:
-        with sqlite3.connect("Petrol.db") as QrPetrol:
-            sql = QrPetrol.cursor()
-            sql.execute(f"INSERT INTO accounts (TelegramNikName, IDTelegram) VALUES (?, ?)", (username, id))
-    except sqlite3.Error as error:
-        print("Ошибка при работе с SQLite addSQL", error)
-
-
 @dispatcher.message_handler(commands=["start"])  # /start command processing
 async def begin(message: types.Message):
     markup = InlineKeyboardMarkup()
@@ -160,10 +52,10 @@ async def begin(message: types.Message):
     if message.chat.id in id_dopusk:
         markup.add(button1, button2)
         await message.answer(f"Пс! Хочешь не много горючки?\n"
-                             f"до конца недели осталось {howMutchIsTheFish()}L", reply_markup=markup)
-    elif CheckAccount(message):
+                             f"до конца недели осталось {SQL.howMutchIsTheFish()}L", reply_markup=markup)
+    elif SQL.CheckAccount(message):
         markup.add(button3)
-        count = howMutchIsTheFishClient(message.chat.id)
+        count = SQL.howMutchIsTheFishClient(message.chat.id)
         await message.answer(f"Пс! Хочешь не много горючки?\n"
                              f"до конца недели осталось {count}L", reply_markup=markup)
     else:
@@ -185,7 +77,7 @@ def knopkaADDaccount(id, username):  # Creates a button with the record id
 async def button_hendler(query: types.CallbackQuery, callback_data: dict):
     username = callback_data.get('username')
     id = callback_data.get("id")
-    addAccountSQL(username, id)
+    SQL.addAccountSQL(username, id)
     markup = InlineKeyboardMarkup()
     button2 = InlineKeyboardButton("Выдать QR", callback_data="GiveQR")
     markup.add(button2)
@@ -199,7 +91,7 @@ async def giveQR(call: types.callback_query):
     markup = InlineKeyboardMarkup()
     button2 = InlineKeyboardButton("Выдать QR", callback_data="GiveQR")
     markup.add(button2)
-    nullCount()
+    SQL.nullCount()
     await bot.send_message(call.message.chat.id, "Все qr обнулились", reply_markup=markup)
 
 
@@ -208,7 +100,7 @@ async def kosiak(call: types.callback_query):
     markup = InlineKeyboardMarkup()
     button2 = InlineKeyboardButton("Выдать QR", callback_data="GiveQR")
     markup.add(button2)
-    kosyakus(name)
+    SQL.kosyakus(name)
     await bot.send_message(call.message.chat.id, "QR помечен не рабочим", reply_markup=markup)
 
 
@@ -220,9 +112,9 @@ async def giveQR(call: types.callback_query):
     markup.add(button1, button2)
     try:
         global name
-        name = giveFreshQR()
+        name = SQL.giveFreshQR()
         photo = open(f"{name}", "rb")
-        changeCount('0', name)
+        SQL.changeCount('0', name)
         await bot.send_photo(call.message.chat.id, photo=photo, reply_markup=markup)
         await bot.answer_callback_query(call.id)
     except:
@@ -237,9 +129,9 @@ async def giveQRclient(call: types.callback_query):
     markup.add(button1, button2)
     try:
         global name
-        name = giveFreshQR()
+        name = SQL.giveFreshQR()
         photo = open(f"{name}", "rb")
-        changeCountClient(call.message.chat.id)
+        SQL.changeCountClient(call.message.chat.id)
         await bot.send_photo(call.message.chat.id, photo=photo, reply_markup=markup)
         await bot.answer_callback_query(call.id)
     except:
@@ -254,7 +146,7 @@ async def clearMessage(callback_query: types.CallbackQuery):
 @dispatcher.message_handler(content_types=['photo'])  # uploads photos
 async def get_photo(message: types.Message):
     if message.chat.id in id_dopusk:
-        if addSQL(message):
+        if SQL.addSQL(message):
             name = message.photo[0].file_unique_id + ".jpeg"
             await message.photo[-1].download(name)
             await message.answer("QR добавлен в базу")
